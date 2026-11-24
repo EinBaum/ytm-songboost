@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>YTM SongBoost</title>
+<style>
+  body {
+    margin: 0;
+    padding: 14px 16px;
+    width: 300px;
+    background: #101014;
+    color: #ffffff;
+    font: 14px/1.4 system-ui, sans-serif;
+  }
+  h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .row + .row {
+    margin-top: 12px;
+  }
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #ff4e45;
+  }
+  input[type="range"] {
+    flex: 1;
+    accent-color: #ff4e45;
+  }
+  #maxValue {
+    min-width: 46px;
+    text-align: right;
+  }
+  #status {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #44444c;
+  }
+  #track {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  #boost {
+    font-size: 20px;
+    font-weight: 600;
+    color: #7dff9b;
+  }
+  #hint {
+    margin-top: 8px;
+    color: #ffd76a;
+  }
+  [hidden] {
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <div class="row">
+    <h1>YTM SongBoost</h1>
+    <input id="enabled" type="checkbox" aria-label="Enabled">
+  </div>
+  <div class="row">
+    <label for="max">Max gain</label>
+    <input id="max" type="range" min="0" max="24" step="1">
+    <span id="maxValue"></span>
+  </div>
+  <div id="status">
+    <div id="track" hidden></div>
+    <div id="message"></div>
+    <div id="boost" hidden></div>
+    <div id="hint" hidden></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
