@@ -78,7 +78,6 @@
           state.gain = left > 0 ? state.gain * ratio : target;
           if (left <= 0) stopRamp(state);
           write(el, state);
-          announce(el);
         }, RAMP_STEP_MS);
       } else {
         state.gain = target;
@@ -164,7 +163,7 @@
     result.title = info.title;
     result.artist = info.artist;
     result.targetDb = 20 * Math.log10(state.target);
-    result.appliedDb = 20 * Math.log10(Math.min(state.gain, 1 / state.requested));
+    result.appliedDb = 20 * Math.log10(Math.min(state.target, 1 / state.requested));
     return result;
   }
 
