@@ -20,7 +20,7 @@
     let state = states.get(el);
     if (!state) {
       const volume = native.get.call(el);
-      state = { requested: volume, written: volume, gain: 1, target: 1, timer: 0 };
+      state = { requested: volume, written: volume, gain: 1, target: 1, track: null, timer: 0 };
       states.set(el, state);
     }
     return state;
@@ -38,19 +38,22 @@
     let artist = String(response.videoDetails.author || '').replace(/ - Topic$/, '');
     const meta = navigator.mediaSession && navigator.mediaSession.metadata;
     if (meta && meta.title === title && meta.artist) artist = meta.artist;
-    return { loudnessDb, title, artist };
+    return { videoId: String(response.videoDetails.videoId || ''), loudnessDb, title, artist };
   }
 
-  function targetGain(el) {
-    if (!settings.enabled || !settingsReceived) return 1;
-    const info = trackInfo(el);
-    if (!info) return 1;
+  function targetGain(info) {
+    if (!settings.enabled || !settingsReceived || !info) return 1;
     const boostDb = Math.min(settings.maxBoostDb, -info.loudnessDb);
     return boostDb > 0 ? 10 ** (boostDb / 20) : 1;
   }
 
   function isAudible(el) {
     return !el.paused && !el.ended && !el.muted && el.readyState > 2 && el.currentTime > 0.25;
+  }
+
+  function trackStarted() {
+    const root = player();
+    return !root || typeof root.getCurrentTime !== 'function' || root.getCurrentTime() > 0;
   }
 
   function write(el, state) {
@@ -64,27 +67,51 @@
     state.timer = 0;
   }
 
+  function startRamp(el, state) {
+    const ratio = (state.target / state.gain) ** (1 / RAMP_STEPS);
+    let left = RAMP_STEPS;
+    state.timer = setInterval(() => {
+      left--;
+      state.gain = left > 0 ? state.gain * ratio : state.target;
+      if (left <= 0) stopRamp(state);
+      write(el, state);
+    }, RAMP_STEP_MS);
+  }
+
   function update(el) {
     const state = stateOf(el);
-    const target = targetGain(el);
-    if (target !== state.target) {
-      state.target = target;
-      stopRamp(state);
-      if (isAudible(el)) {
-        const ratio = (target / state.gain) ** (1 / RAMP_STEPS);
-        let left = RAMP_STEPS;
-        state.timer = setInterval(() => {
-          left--;
-          state.gain = left > 0 ? state.gain * ratio : target;
-          if (left <= 0) stopRamp(state);
-          write(el, state);
-        }, RAMP_STEP_MS);
-      } else {
-        state.gain = target;
-      }
+    const info = trackInfo(el);
+    const track = info ? info.videoId : null;
+    const target = targetGain(info);
+    const newTrack = track !== state.track;
+    if (newTrack || target !== state.target) stopRamp(state);
+    // A new song gets a lower gain at once. A higher gain waits for the song's audio, which on a
+    // gapless change starts a moment after the player has switched to the song.
+    if (newTrack && target < state.gain) state.gain = target;
+    state.track = track;
+    state.target = target;
+    if (state.gain !== target && !state.timer) {
+      if (!isAudible(el)) state.gain = target;
+      else if (target < state.gain || trackStarted()) startRamp(el, state);
     }
     write(el, state);
     announce(el);
+  }
+
+  let watchedPlayer = null;
+
+  function watchPlayer() {
+    const root = player();
+    if (!root || root === watchedPlayer) return;
+    watchedPlayer = root;
+    // YouTube player API event. It fires when the next song takes over, also on gapless changes
+    // that fire no media events.
+    root.addEventListener('onVideoDataChange', () => {
+      try {
+        const el = playerElement();
+        if (el && managed(el)) update(el);
+      } catch {}
+    });
   }
 
   function managed(el) {
@@ -127,6 +154,7 @@
     const el = event.target;
     if (!(el instanceof HTMLMediaElement) || !managed(el)) return;
     try {
+      watchPlayer();
       update(el);
     } catch {}
   }

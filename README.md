@@ -12,6 +12,10 @@ The icon shows the current boost in dB. Orange means the volume is too high for 
 
 ## Install
 
+Install it from the [Chrome Web Store](https://chromewebstore.google.com/detail/ytm-songboost/dbdcobjecpomicdekfahbcilbmlnioni).
+
+To load it from a release instead:
+
 1. Download the zip from [Releases](../../releases) and unzip it.
 2. Open `chrome://extensions` and turn on Developer mode.
 3. Click Load unpacked and select the unzipped folder.
